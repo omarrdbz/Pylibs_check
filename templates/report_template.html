@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Librerías — {{ report_date }}</title>
+    <style>
+        /* === Reset y Base === */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            line-height: 1.6;
+            padding: 24px;
+        }
+
+        /* === Contenedor principal === */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* === Header === */
+        .header {
+            background: linear-gradient(135deg, #0078d4, #005a9e);
+            color: white;
+            padding: 32px 40px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 120, 212, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+
+        .header .date-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        /* === Tarjetas KPI === */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-top: 4px solid #e0e0e0;
+            transition: transform 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .kpi-card .kpi-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-total {
+            border-top-color: #0078d4;
+        }
+
+        .kpi-total .kpi-value {
+            color: #0078d4;
+        }
+
+        .kpi-ok {
+            border-top-color: #107c10;
+        }
+
+        .kpi-ok .kpi-value {
+            color: #107c10;
+        }
+
+        .kpi-update {
+            border-top-color: #ff8c00;
+        }
+
+        .kpi-update .kpi-value {
+            color: #ff8c00;
+        }
+
+        .kpi-vuln {
+            border-top-color: #d13438;
+        }
+
+        .kpi-vuln .kpi-value {
+            color: #d13438;
+        }
+
+        .kpi-error {
+            border-top-color: #8a8886;
+        }
+
+        .kpi-error .kpi-value {
+            color: #8a8886;
+        }
+
+        .kpi-recent {
+            border-top-color: #8764b8;
+        }
+
+        .kpi-recent .kpi-value {
+            color: #8764b8;
+        }
+
+        /* === Sección === */
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f2f5;
+            color: #1a1a2e;
+        }
+
+        /* === Tabla principal === */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead th {
+            background: #fafafa;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #444;
+            border-bottom: 2px solid #e8e8e8;
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fb;
+        }
+
+        .mono {
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        /* === Badges de estado === */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-ok {
+            background: #dff6dd;
+            color: #107c10;
+        }
+
+        .badge-update {
+            background: #fff4ce;
+            color: #986f0b;
+        }
+
+        .badge-vuln {
+            background: #fde7e9;
+            color: #d13438;
+        }
+
+        .badge-error {
+            background: #edebe9;
+            color: #605e5c;
+        }
+
+        .badge-critical {
+            background: #d13438;
+            color: white;
+        }
+
+        .badge-high {
+            background: #ff8c00;
+            color: white;
+        }
+
+        .badge-medium {
+            background: #ffb900;
+            color: #1a1a2e;
+        }
+
+        .badge-low {
+            background: #0078d4;
+            color: white;
+        }
+
+        .badge-unknown {
+            background: #edebe9;
+            color: #605e5c;
+        }
+
+        .badge-recent {
+            background: #eee0ff;
+            color: #8764b8;
+        }
+
+        /* === Tabla de vulnerabilidades === */
+        .vuln-table {
+            margin-top: 8px;
+        }
+
+        .vuln-table th {
+            background: #fff5f5;
+            color: #d13438;
+        }
+
+        .vuln-id-link {
+            color: #0078d4;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .vuln-id-link:hover {
+            text-decoration: underline;
+        }
+
+        /* === Version comparison === */
+        .version-arrow {
+            color: #ff8c00;
+            font-weight: 700;
+            margin: 0 6px;
+        }
+
+        .version-new {
+            color: #107c10;
+            font-weight: 600;
+        }
+
+        /* === Footer === */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #8a8886;
+            font-size: 12px;
+        }
+
+        .footer a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+
+        /* === Responsive === */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 20px 24px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* === Alerta resumen === */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #dff6dd;
+            color: #107c10;
+            border-left: 4px solid #107c10;
+        }
+
+        .alert-warning {
+            background: #fff4ce;
+            color: #986f0b;
+            border-left: 4px solid #ff8c00;
+        }
+
+        .alert-danger {
+            background: #fde7e9;
+            color: #d13438;
+            border-left: 4px solid #d13438;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <h1>&#128203; Reporte de Librerías Python</h1>
+            <div class="subtitle">Verificación de versiones y vulnerabilidades — Librerías aprobadas</div>
+            <div class="date-badge">&#128197; {{ report_date }} &nbsp;|&nbsp; &#128338; {{ report_time }}</div>
+        </div>
+
+        <!-- Alerta de resumen -->
+        {% if stats.vulnerable > 0 %}
+        <div class="alert alert-danger">
+            <span class="alert-icon">&#9888;&#65039;</span>
+            <span><strong>¡Atención!</strong> Se detectaron <strong>{{ stats.vulnerable }}</strong> librería(s) con
+                vulnerabilidades conocidas en su versión aprobada. Revisar la sección de vulnerabilidades.</span>
+        </div>
+        {% elif stats.outdated > 0 %}
+        <div class="alert alert-warning">
+            <span class="alert-icon">&#128312;</span>
+            <span>Hay <strong>{{ stats.outdated }}</strong> librería(s) con versiones más recientes disponibles.
+                Considere planificar las actualizaciones.</span>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <span class="alert-icon">&#9989;</span>
+            <span><strong>Todo en orden.</strong> Todas las librerías están actualizadas y sin vulnerabilidades
+                conocidas.</span>
+        </div>
+        {% endif %}
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-total">
+                <div class="kpi-value">{{ stats.total }}</div>
+                <div class="kpi-label">Total Librerías</div>
+            </div>
+            <div class="kpi-card kpi-update">
+                <div class="kpi-value">{{ stats.outdated }}</div>
+                <div class="kpi-label">Actualización Disponible</div>
+            </div>
+            <div class="kpi-card kpi-vuln">
+                <div class="kpi-value">{{ stats.vulnerable }}</div>
+                <div class="kpi-label">Con Vulns (v. aprobada)</div>
+            </div>
+            {% if stats.recent_vulns > 0 %}
+            <div class="kpi-card kpi-recent">
+                <div class="kpi-value">{{ stats.recent_vulns }}</div>
+                <div class="kpi-label">Vulns Recientes (24h)</div>
+            </div>
+            {% endif %}
+        </div>
+        {% if stats.errors > 0 %}
+        <div class="kpi-card kpi-error">
+            <div class="kpi-value">{{ stats.errors }}</div>
+            <div class="kpi-label">Errores de Consulta</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabla principal -->
+    <div class="section">
+        <h2>&#128220; Detalle por Librería</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Librería</th>
+                        <th>Versión Aprobada</th>
+                        <th>Última Versión</th>
+                        <th>Estado</th>
+                        <th>Vulns (v. aprobada)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lib in libraries %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ lib.name }}</strong>
+                            {% if lib.pypi_url %}
+                            <br><a href="{{ lib.pypi_url }}" style="font-size:12px; color:#0078d4;">PyPI &#8599;</a>
+                            {% endif %}
+                        </td>
+                        <td class="mono">{{ lib.current_version }}</td>
+                        <td class="mono">
+                            {% if lib.version_status == 'UPDATE' %}
+                            <span class="version-new">{{ lib.latest_version }}</span>
+                            {% elif lib.version_status == 'ERROR' %}
+                            <span style="color:#8a8886;">—</span>
+                            {% else %}
+                            {{ lib.latest_version }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lib.version_status == 'OK' %}
+                            <span class="badge badge-ok">&#10004; Al día</span>
+                            {% elif lib.version_status == 'UPDATE' %}
+                            <span class="badge badge-update">&#8593; Actualizar</span>
+                            {% elif lib.version_status == 'ERROR' %}
+                            <span class="badge badge-error">&#10007; Error</span>
+                            {% endif %}
+                            {% if lib.vulnerabilities|length > 0 %}
+                            <span class="badge badge-vuln">&#9888; Vulnerable</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lib.vulnerabilities|length > 0 %}
+                            {% for v in lib.vulnerabilities %}
+                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}" target="_blank">{{
+                                v.id }}</a>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <span style="color:#8a8886;">Ninguna</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Vulnerabilidades detalladas -->
+    {% if vulnerable_libs|length > 0 %}
+    <div class="section">
+        <h2>&#128680; Vulnerabilidades en Versión Aprobada</h2>
+        <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Estas vulnerabilidades afectan directamente la
+            versión aprobada en el Excel.</p>
+        {% for lib in vulnerable_libs %}
+        <h3 style="margin: 16px 0 10px; font-size: 16px;">
+            &#128205; {{ lib.name }} <span class="mono" style="font-weight:400; color:#666;">versión aprobada: {{
+                lib.current_version }}</span>
+        </h3>
+        <div class="table-wrapper">
+            <table class="vuln-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Severidad</th>
+                        <th>Resumen</th>
+                        <th>Versión Corregida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in lib.vulnerabilities %}
+                    <tr>
+                        <td>
+                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}" target="_blank">{{
+                                v.id }}</a>
+                            {% for alias in v.aliases %}
+                            <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if v.severity == 'CRITICAL' %}
+                            <span class="badge badge-critical">Crítica</span>
+                            {% elif v.severity == 'HIGH' %}
+                            <span class="badge badge-high">Alta</span>
+                            {% elif v.severity == 'MEDIUM' %}
+                            <span class="badge badge-medium">Media</span>
+                            {% elif v.severity == 'LOW' %}
+                            <span class="badge badge-low">Baja</span>
+                            {% else %}
+                            <span class="badge badge-unknown">Desconocida</span>
+                            {% endif %}
+                        </td>
+                        <td style="max-width: 350px;">{{ v.summary }}</td>
+                        <td class="mono">{{ v.fixed_version if v.fixed_version else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Vulnerabilidades recientes (últimas 24h) -->
+    {% if recent_vulns|length > 0 %}
+    <div class="section">
+        <h2>&#128347; Vulnerabilidades Recientes (últimas 24h)</h2>
+        <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Vulnerabilidades publicadas o actualizadas en las
+            últimas 24 horas para estas librerías, en cualquier versión. No necesariamente afectan la versión aprobada.
+        </p>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Librería</th>
+                        <th>ID</th>
+                        <th>Severidad</th>
+                        <th>Resumen</th>
+                        <th>Versiones Afectadas</th>
+                        <th>Corregida en</th>
+                        <th>Modificada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rv in recent_vulns %}
+                    <tr>
+                        <td><strong>{{ rv.library }}</strong></td>
+                        <td>
+                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ rv.id }}" target="_blank">{{
+                                rv.id }}</a>
+                            {% for alias in rv.aliases %}
+                            <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if rv.severity == 'CRITICAL' %}
+                            <span class="badge badge-critical">Crítica</span>
+                            {% elif rv.severity == 'HIGH' %}
+                            <span class="badge badge-high">Alta</span>
+                            {% elif rv.severity == 'MEDIUM' %}
+                            <span class="badge badge-medium">Media</span>
+                            {% elif rv.severity == 'LOW' %}
+                            <span class="badge badge-low">Baja</span>
+                            {% else %}
+                            <span class="badge badge-unknown">Desconocida</span>
+                            {% endif %}
+                        </td>
+                        <td style="max-width: 300px;">{{ rv.summary }}</td>
+                        <td class="mono" style="font-size:12px;">{{ rv.affected_versions if rv.affected_versions else
+                            '—' }}</td>
+                        <td class="mono">{{ rv.fixed_version if rv.fixed_version else '—' }}</td>
+                        <td style="font-size:12px; white-space:nowrap;">{{ rv.modified }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Generado por <strong>daily_checks.py</strong> el {{ report_date }} a las {{ report_time }}</p>
+        <p>Datos de versiones: <a href="https://pypi.org" target="_blank">PyPI</a> &nbsp;|&nbsp; Datos de
+            vulnerabilidades: <a href="https://osv.dev" target="_blank">OSV.dev</a></p>
+        <p style="margin-top:8px;">Duración de ejecución: {{ execution_time }}s &nbsp;|&nbsp; Librerías procesadas: {{
+            stats.total }}</p>
+    </div>
+
+    </div>
+</body>
+
+</html>
