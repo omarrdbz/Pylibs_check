@@ -44,16 +44,20 @@ Dependencias: `openpyxl`, `requests`, `packaging`, `jinja2`
 
 ### Formato del Excel de entrada
 
-El Excel debe tener al menos dos columnas (la búsqueda del encabezado es case-insensitive):
+El Excel debe tener al menos dos columnas obligatorias y puede tener dos opcionales (la búsqueda de encabezados es case-insensitive):
 
-| Library | Version |
-|---------|---------|
-| requests | 2.31.0 |
-| django | 5.0.0 |
-| flask | 3.0.0 |
-| cryptography | 42.0.0 |
+| Library | Version | Approved | Language |
+|---------|---------|----------|----------|
+| requests | 2.31.0 | Yes | Python |
+| django | 5.0.0 | Yes | Python |
+| express | 4.18.0 | Yes | JavaScript |
+| flask | 3.0.0 | No | Python |
 
-Puedes agregar más columnas, el script solo lee `Library` y `Version`.
+- **Library** y **Version** son obligatorias
+- **Approved** (opcional): si existe, solo se procesan filas con valor verdadero (`Yes`, `True`, `Sí`, `1`, `X`). Si no existe, se procesan todas.
+- **Language** (opcional): si existe, solo se procesan filas donde el valor sea `Python`. Si no existe, se procesan todas.
+
+Puedes tener columnas adicionales, el script las ignora.
 
 ### Uso
 
@@ -74,10 +78,10 @@ El archivo generado es **auto-contenido** (CSS inline, sin JavaScript, sin archi
 | # | Sección | Descripción |
 |---|---------|-------------|
 | 1 | **Alerta de resumen** | Banner de color al inicio: 🔴 rojo si hay vulnerabilidades, 🟡 amarillo si solo hay actualizaciones, 🟢 verde si todo está OK. |
-| 2 | **Tarjetas KPI** | Números grandes: Total · Actualización disponible · Con vulns (versión aprobada) · Vulns recientes (24h) · Errores. |
-| 3 | **Tabla de detalle** | Una fila por librería con: nombre (link a PyPI), versión aprobada, última versión en PyPI, badges de estado (`↑ Actualizar`, `⚠ Vulnerable`), y los IDs de vulnerabilidades como links a OSV.dev. Una librería puede tener ambos badges si está desactualizada Y es vulnerable. |
-| 4 | **Vulnerabilidades en versión aprobada** | Detalle de cada vulnerabilidad que afecta directamente la versión del Excel: ID (GHSA/PYSEC/CVE), aliases, severidad (Crítica/Alta/Media/Baja), descripción y versión corregida. Solo aparece si hay. |
-| 5 | **Vulnerabilidades recientes (últimas 24h)** | CVEs publicados o modificados en las últimas 24 horas para estas librerías en **cualquier versión**. Útil para anticipar nuevos riesgos aunque no afecten la versión aprobada. Incluye rango de versiones afectadas. Solo aparece si hay. |
+| 2 | **Tarjetas KPI** | Números grandes: Total · Actualización disponible · Con vulns (versión aprobada) · Vulns recientes (24h) · Errores. Todos en la misma fila. |
+| 3 | **Tabla de detalle** | Solo muestra librerías que requieren atención (desactualizadas, vulnerables o con error). Las que están al día y sin vulnerabilidades no aparecen. |
+| 4 | **Vulnerabilidades en versión aprobada** | Detalle de cada vulnerabilidad que afecta directamente la versión del Excel: ID, aliases, severidad, descripción y versión corregida. Solo aparece si hay. |
+| 5 | **Vulnerabilidades recientes (últimas 24h)** | CVEs publicados o modificados en las últimas 24 horas para estas librerías en **cualquier versión**. Incluye rango de versiones afectadas. Solo aparece si hay. |
 | 6 | **Footer** | Fecha, hora, fuentes de datos (PyPI + OSV.dev) y tiempo de ejecución. |
 
 ### Códigos de salida

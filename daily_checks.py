@@ -50,6 +50,8 @@ TEMPLATE_FILE = "report_template.html"
 # Columnas esperadas en el Excel (case-insensitive)
 COL_LIBRARY = "Library"
 COL_VERSION = "Version"
+COL_APPROVED = "Approved"    # opcional: si existe, solo procesa filas aprobadas
+COL_LANGUAGE = "Language"    # opcional: si existe, solo procesa filas con 'python'
 
 
 # ============================================================================
@@ -157,7 +159,7 @@ def create_http_session() -> requests.Session:
 def read_approved_libraries(file_path: str, logger: logging.Logger) -> list[dict]:
     """
     Lee el Excel y retorna lista de dicts {'name': ..., 'version': ...}.
-    Valida columnas y filas vacías.
+    Filtra por columna 'Approved' (si existe) y 'Language' (si existe, solo Python).
     """
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"No se encontró el archivo: {file_path}")
@@ -184,15 +186,31 @@ def read_approved_libraries(file_path: str, logger: logging.Logger) -> list[dict
     except ValueError:
         raise ValueError(f"Columna '{COL_VERSION}' no encontrada. Columnas disponibles: {headers}")
 
+    # Columnas opcionales de filtrado
+    idx_approved = None
+    try:
+        idx_approved = headers_lower.index(COL_APPROVED.lower())
+        logger.info("Columna '%s' detectada — se filtrarán solo librerías aprobadas.", COL_APPROVED)
+    except ValueError:
+        pass
+
+    idx_language = None
+    try:
+        idx_language = headers_lower.index(COL_LANGUAGE.lower())
+        logger.info("Columna '%s' detectada — se filtrarán solo librerías Python.", COL_LANGUAGE)
+    except ValueError:
+        pass
+
     # Leer filas
     libraries = []
     skipped = 0
+    skipped_not_approved = 0
+    skipped_not_python = 0
     for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         name = row[idx_name] if idx_name < len(row) else None
         version = row[idx_version] if idx_version < len(row) else None
 
         if not name or not str(name).strip():
-            logger.warning("Fila %d: nombre vacío, se omite.", row_num)
             skipped += 1
             continue
         if not version or not str(version).strip():
@@ -200,15 +218,48 @@ def read_approved_libraries(file_path: str, logger: logging.Logger) -> list[dict
             skipped += 1
             continue
 
+        # Filtro: columna Approved
+        if idx_approved is not None:
+            approved_val = row[idx_approved] if idx_approved < len(row) else None
+            if not _is_truthy(approved_val):
+                skipped_not_approved += 1
+                continue
+
+        # Filtro: columna Language
+        if idx_language is not None:
+            lang_val = row[idx_language] if idx_language < len(row) else None
+            if not lang_val or str(lang_val).strip().lower() != "python":
+                skipped_not_python += 1
+                continue
+
         libraries.append({"name": str(name).strip(), "version": str(version).strip()})
 
     wb.close()
-    logger.info("Se leyeron %d librerías (%d filas omitidas).", len(libraries), skipped)
+
+    logger.info("Se leyeron %d librerías Python aprobadas.", len(libraries))
+    if skipped:
+        logger.info("  Filas omitidas (datos incompletos): %d", skipped)
+    if skipped_not_approved:
+        logger.info("  Filas omitidas (no aprobadas):      %d", skipped_not_approved)
+    if skipped_not_python:
+        logger.info("  Filas omitidas (no Python):         %d", skipped_not_python)
 
     if not libraries:
-        raise ValueError("El archivo Excel no contiene librerías válidas.")
+        raise ValueError("El archivo Excel no contiene librerías Python aprobadas.")
 
     return libraries
+
+
+def _is_truthy(value) -> bool:
+    """Determina si un valor de celda es 'verdadero' (True, Yes, Sí, 1, X, etc.)."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    return text in ("true", "yes", "sí", "si", "1", "x", "y")
 
 
 # ============================================================================

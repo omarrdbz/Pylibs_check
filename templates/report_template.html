@@ -407,199 +407,207 @@
                 <div class="kpi-label">Vulns Recientes (24h)</div>
             </div>
             {% endif %}
+            {% if stats.errors > 0 %}
+            <div class="kpi-card kpi-error">
+                <div class="kpi-value">{{ stats.errors }}</div>
+                <div class="kpi-label">Errores de Consulta</div>
+            </div>
+            {% endif %}
         </div>
-        {% if stats.errors > 0 %}
-        <div class="kpi-card kpi-error">
-            <div class="kpi-value">{{ stats.errors }}</div>
-            <div class="kpi-label">Errores de Consulta</div>
+
+        <!-- Tabla principal -->
+        <div class="section">
+            <h2>&#128220; Detalle por Librería</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Librería</th>
+                            <th>Versión Aprobada</th>
+                            <th>Última Versión</th>
+                            <th>Estado</th>
+                            <th>Vulns (v. aprobada)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lib in libraries %}
+                        {% if lib.version_status != 'OK' or lib.vulnerabilities|length > 0 %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ lib.name }}</strong>
+                                {% if lib.pypi_url %}
+                                <br><a href="{{ lib.pypi_url }}" style="font-size:12px; color:#0078d4;">PyPI &#8599;</a>
+                                {% endif %}
+                            </td>
+                            <td class="mono">{{ lib.current_version }}</td>
+                            <td class="mono">
+                                {% if lib.version_status == 'UPDATE' %}
+                                <span class="version-new">{{ lib.latest_version }}</span>
+                                {% elif lib.version_status == 'ERROR' %}
+                                <span style="color:#8a8886;">—</span>
+                                {% else %}
+                                {{ lib.latest_version }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lib.version_status == 'OK' %}
+                                <span class="badge badge-ok">&#10004; Al día</span>
+                                {% elif lib.version_status == 'UPDATE' %}
+                                <span class="badge badge-update">&#8593; Actualizar</span>
+                                {% elif lib.version_status == 'ERROR' %}
+                                <span class="badge badge-error">&#10007; Error</span>
+                                {% endif %}
+                                {% if lib.vulnerabilities|length > 0 %}
+                                <span class="badge badge-vuln">&#9888; Vulnerable</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lib.vulnerabilities|length > 0 %}
+                                {% for v in lib.vulnerabilities %}
+                                <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}"
+                                    target="_blank">{{
+                                    v.id }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% else %}
+                                <span style="color:#8a8886;">Ninguna</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vulnerabilidades detalladas -->
+        {% if vulnerable_libs|length > 0 %}
+        <div class="section">
+            <h2>&#128680; Vulnerabilidades en Versión Aprobada</h2>
+            <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Estas vulnerabilidades afectan directamente la
+                versión aprobada en el Excel.</p>
+            {% for lib in vulnerable_libs %}
+            <h3 style="margin: 16px 0 10px; font-size: 16px;">
+                &#128205; {{ lib.name }} <span class="mono" style="font-weight:400; color:#666;">versión aprobada: {{
+                    lib.current_version }}</span>
+            </h3>
+            <div class="table-wrapper">
+                <table class="vuln-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Severidad</th>
+                            <th>Resumen</th>
+                            <th>Versión Corregida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in lib.vulnerabilities %}
+                        <tr>
+                            <td>
+                                <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}"
+                                    target="_blank">{{
+                                    v.id }}</a>
+                                {% for alias in v.aliases %}
+                                <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if v.severity == 'CRITICAL' %}
+                                <span class="badge badge-critical">Crítica</span>
+                                {% elif v.severity == 'HIGH' %}
+                                <span class="badge badge-high">Alta</span>
+                                {% elif v.severity == 'MEDIUM' %}
+                                <span class="badge badge-medium">Media</span>
+                                {% elif v.severity == 'LOW' %}
+                                <span class="badge badge-low">Baja</span>
+                                {% else %}
+                                <span class="badge badge-unknown">Desconocida</span>
+                                {% endif %}
+                            </td>
+                            <td style="max-width: 350px;">{{ v.summary }}</td>
+                            <td class="mono">{{ v.fixed_version if v.fixed_version else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
-    </div>
 
-    <!-- Tabla principal -->
-    <div class="section">
-        <h2>&#128220; Detalle por Librería</h2>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Librería</th>
-                        <th>Versión Aprobada</th>
-                        <th>Última Versión</th>
-                        <th>Estado</th>
-                        <th>Vulns (v. aprobada)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for lib in libraries %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>
-                            <strong>{{ lib.name }}</strong>
-                            {% if lib.pypi_url %}
-                            <br><a href="{{ lib.pypi_url }}" style="font-size:12px; color:#0078d4;">PyPI &#8599;</a>
-                            {% endif %}
-                        </td>
-                        <td class="mono">{{ lib.current_version }}</td>
-                        <td class="mono">
-                            {% if lib.version_status == 'UPDATE' %}
-                            <span class="version-new">{{ lib.latest_version }}</span>
-                            {% elif lib.version_status == 'ERROR' %}
-                            <span style="color:#8a8886;">—</span>
-                            {% else %}
-                            {{ lib.latest_version }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if lib.version_status == 'OK' %}
-                            <span class="badge badge-ok">&#10004; Al día</span>
-                            {% elif lib.version_status == 'UPDATE' %}
-                            <span class="badge badge-update">&#8593; Actualizar</span>
-                            {% elif lib.version_status == 'ERROR' %}
-                            <span class="badge badge-error">&#10007; Error</span>
-                            {% endif %}
-                            {% if lib.vulnerabilities|length > 0 %}
-                            <span class="badge badge-vuln">&#9888; Vulnerable</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if lib.vulnerabilities|length > 0 %}
-                            {% for v in lib.vulnerabilities %}
-                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}" target="_blank">{{
-                                v.id }}</a>{% if not loop.last %}, {% endif %}
-                            {% endfor %}
-                            {% else %}
-                            <span style="color:#8a8886;">Ninguna</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Vulnerabilidades recientes (últimas 24h) -->
+        {% if recent_vulns|length > 0 %}
+        <div class="section">
+            <h2>&#128347; Vulnerabilidades Recientes (últimas 24h)</h2>
+            <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Vulnerabilidades publicadas o actualizadas en
+                las
+                últimas 24 horas para estas librerías, en cualquier versión. No necesariamente afectan la versión
+                aprobada.
+            </p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Librería</th>
+                            <th>ID</th>
+                            <th>Severidad</th>
+                            <th>Resumen</th>
+                            <th>Versiones Afectadas</th>
+                            <th>Corregida en</th>
+                            <th>Modificada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rv in recent_vulns %}
+                        <tr>
+                            <td><strong>{{ rv.library }}</strong></td>
+                            <td>
+                                <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ rv.id }}"
+                                    target="_blank">{{
+                                    rv.id }}</a>
+                                {% for alias in rv.aliases %}
+                                <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if rv.severity == 'CRITICAL' %}
+                                <span class="badge badge-critical">Crítica</span>
+                                {% elif rv.severity == 'HIGH' %}
+                                <span class="badge badge-high">Alta</span>
+                                {% elif rv.severity == 'MEDIUM' %}
+                                <span class="badge badge-medium">Media</span>
+                                {% elif rv.severity == 'LOW' %}
+                                <span class="badge badge-low">Baja</span>
+                                {% else %}
+                                <span class="badge badge-unknown">Desconocida</span>
+                                {% endif %}
+                            </td>
+                            <td style="max-width: 300px;">{{ rv.summary }}</td>
+                            <td class="mono" style="font-size:12px;">{{ rv.affected_versions if rv.affected_versions
+                                else
+                                '—' }}</td>
+                            <td class="mono">{{ rv.fixed_version if rv.fixed_version else '—' }}</td>
+                            <td style="font-size:12px; white-space:nowrap;">{{ rv.modified }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+        {% endif %}
 
-    <!-- Vulnerabilidades detalladas -->
-    {% if vulnerable_libs|length > 0 %}
-    <div class="section">
-        <h2>&#128680; Vulnerabilidades en Versión Aprobada</h2>
-        <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Estas vulnerabilidades afectan directamente la
-            versión aprobada en el Excel.</p>
-        {% for lib in vulnerable_libs %}
-        <h3 style="margin: 16px 0 10px; font-size: 16px;">
-            &#128205; {{ lib.name }} <span class="mono" style="font-weight:400; color:#666;">versión aprobada: {{
-                lib.current_version }}</span>
-        </h3>
-        <div class="table-wrapper">
-            <table class="vuln-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Severidad</th>
-                        <th>Resumen</th>
-                        <th>Versión Corregida</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for v in lib.vulnerabilities %}
-                    <tr>
-                        <td>
-                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ v.id }}" target="_blank">{{
-                                v.id }}</a>
-                            {% for alias in v.aliases %}
-                            <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% if v.severity == 'CRITICAL' %}
-                            <span class="badge badge-critical">Crítica</span>
-                            {% elif v.severity == 'HIGH' %}
-                            <span class="badge badge-high">Alta</span>
-                            {% elif v.severity == 'MEDIUM' %}
-                            <span class="badge badge-medium">Media</span>
-                            {% elif v.severity == 'LOW' %}
-                            <span class="badge badge-low">Baja</span>
-                            {% else %}
-                            <span class="badge badge-unknown">Desconocida</span>
-                            {% endif %}
-                        </td>
-                        <td style="max-width: 350px;">{{ v.summary }}</td>
-                        <td class="mono">{{ v.fixed_version if v.fixed_version else '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generado por <strong>daily_checks.py</strong> el {{ report_date }} a las {{ report_time }}</p>
+            <p>Datos de versiones: <a href="https://pypi.org" target="_blank">PyPI</a> &nbsp;|&nbsp; Datos de
+                vulnerabilidades: <a href="https://osv.dev" target="_blank">OSV.dev</a></p>
+            <p style="margin-top:8px;">Duración de ejecución: {{ execution_time }}s &nbsp;|&nbsp; Librerías procesadas:
+                {{
+                stats.total }}</p>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Vulnerabilidades recientes (últimas 24h) -->
-    {% if recent_vulns|length > 0 %}
-    <div class="section">
-        <h2>&#128347; Vulnerabilidades Recientes (últimas 24h)</h2>
-        <p style="color:#666; font-size:13px; margin:-12px 0 18px;">Vulnerabilidades publicadas o actualizadas en las
-            últimas 24 horas para estas librerías, en cualquier versión. No necesariamente afectan la versión aprobada.
-        </p>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Librería</th>
-                        <th>ID</th>
-                        <th>Severidad</th>
-                        <th>Resumen</th>
-                        <th>Versiones Afectadas</th>
-                        <th>Corregida en</th>
-                        <th>Modificada</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rv in recent_vulns %}
-                    <tr>
-                        <td><strong>{{ rv.library }}</strong></td>
-                        <td>
-                            <a class="vuln-id-link" href="https://osv.dev/vulnerability/{{ rv.id }}" target="_blank">{{
-                                rv.id }}</a>
-                            {% for alias in rv.aliases %}
-                            <br><span style="font-size:11px; color:#666;">{{ alias }}</span>
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% if rv.severity == 'CRITICAL' %}
-                            <span class="badge badge-critical">Crítica</span>
-                            {% elif rv.severity == 'HIGH' %}
-                            <span class="badge badge-high">Alta</span>
-                            {% elif rv.severity == 'MEDIUM' %}
-                            <span class="badge badge-medium">Media</span>
-                            {% elif rv.severity == 'LOW' %}
-                            <span class="badge badge-low">Baja</span>
-                            {% else %}
-                            <span class="badge badge-unknown">Desconocida</span>
-                            {% endif %}
-                        </td>
-                        <td style="max-width: 300px;">{{ rv.summary }}</td>
-                        <td class="mono" style="font-size:12px;">{{ rv.affected_versions if rv.affected_versions else
-                            '—' }}</td>
-                        <td class="mono">{{ rv.fixed_version if rv.fixed_version else '—' }}</td>
-                        <td style="font-size:12px; white-space:nowrap;">{{ rv.modified }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Footer -->
-    <div class="footer">
-        <p>Generado por <strong>daily_checks.py</strong> el {{ report_date }} a las {{ report_time }}</p>
-        <p>Datos de versiones: <a href="https://pypi.org" target="_blank">PyPI</a> &nbsp;|&nbsp; Datos de
-            vulnerabilidades: <a href="https://osv.dev" target="_blank">OSV.dev</a></p>
-        <p style="margin-top:8px;">Duración de ejecución: {{ execution_time }}s &nbsp;|&nbsp; Librerías procesadas: {{
-            stats.total }}</p>
-    </div>
 
     </div>
 </body>
