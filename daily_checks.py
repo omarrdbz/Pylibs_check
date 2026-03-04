@@ -39,6 +39,7 @@ RATE_LIMIT_DELAY = 0.2      # segundos entre requests a PyPI
 MAX_RETRIES = 3
 BACKOFF_FACTOR = 0.5
 OSV_BATCH_SIZE = 1000       # máximo de queries por batch de OSV
+RECENT_VULNS_HOURS = 24     # período para buscar vulnerabilidades recientes
 
 LOG_FILE = "daily_checks.log"
 LOG_MAX_BYTES = 5_242_880   # 5 MB
@@ -470,7 +471,7 @@ def scan_recent_vulnerabilities(libraries: list[dict], known_vuln_ids: set,
     Excluye las que ya se reportaron en la sección de versión aprobada.
     """
     logger.info("Buscando vulnerabilidades recientes (últimas 24h)...")
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=RECENT_VULNS_HOURS)
     recent: list[RecentVuln] = []
 
     # Consulta OSV sin versión → retorna TODAS las vulns del paquete
