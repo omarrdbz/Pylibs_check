@@ -1,0 +1,6 @@
+{
+  "version": "1.0",
+  "description": "Política inicial para revisión manual; validar con Seguridad y Legal.",
+  "risky_patterns": ["GPL-*", "AGPL-*", "SSPL-*", "*Commons Clause*", "*General Public License*"],
+  "unknown_requires_review": true
+}

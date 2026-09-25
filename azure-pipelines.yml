@@ -1,0 +1,62 @@
+# Run manually on a fresh Microsoft-hosted agent. Findings never gate approval.
+trigger: none
+pr: none
+parameters:
+- name: ecosystem
+  type: string
+  default: PyPI
+  values: [PyPI, npm, NuGet]
+- name: target
+  type: string
+  default: requests==2.32.3
+- name: project
+  type: string
+  default: ' '
+- name: framework
+  type: string
+  default: net8.0
+pool:
+  vmImage: ubuntu-24.04
+jobs:
+- job: Assessment
+  timeoutInMinutes: 60
+  workspace:
+    clean: all
+  steps:
+  - checkout: self
+    persistCredentials: false
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '22.x'
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: '8.x'
+  - bash: |
+      python -m venv "$AGENT_TEMPDIRECTORY/audit-tools"
+      "$AGENT_TEMPDIRECTORY/audit-tools/bin/python" -m pip install -r requirements-audit.txt
+      "$AGENT_TEMPDIRECTORY/audit-tools/bin/python" -m unittest discover -s tests -v
+    displayName: Prepare and verify evaluator
+  - bash: |
+      args=(evaluate --ecosystem "$AUDIT_ECOSYSTEM" --framework "$AUDIT_FRAMEWORK" --output "$BUILD_ARTIFACTSTAGINGDIRECTORY/oss")
+      if [[ -n "${AUDIT_PROJECT// /}" ]]; then
+        args+=(--project "$AUDIT_PROJECT")
+      else
+        args+=(--target "$AUDIT_TARGET")
+      fi
+      "$AGENT_TEMPDIRECTORY/audit-tools/bin/python" -m oss_audit "${args[@]}"
+    displayName: Resolve and evaluate OSS
+    env:
+      AUDIT_ECOSYSTEM: ${{ parameters.ecosystem }}
+      AUDIT_TARGET: ${{ parameters.target }}
+      AUDIT_PROJECT: ${{ parameters.project }}
+      AUDIT_FRAMEWORK: ${{ parameters.framework }}
+  - task: PublishPipelineArtifact@1
+    condition: always()
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)/oss
+      artifact: oss-evidence-$(Build.BuildId)
+    displayName: Preserve evidence even when analysis is incomplete

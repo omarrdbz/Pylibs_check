@@ -24,3 +24,6 @@ sample_libraries.xlsx
 # OS
 Thumbs.db
 .DS_Store
+artifacts/
+*.db
+audit_report_*.csv

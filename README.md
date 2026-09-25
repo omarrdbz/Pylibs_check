@@ -1,5 +1,11 @@
 # Pylibs Check
 
+La evaluación preventiva ahora soporta **Python/PyPI, Node.js/npm y .NET/NuGet**,
+con política externa de licencias, OSV, CSV compatible, SBOM CycloneDX y evidencia
+por evaluación para revisión manual. Ver [guía de automatización](AUTOMATION.md) y
+[pipeline Azure DevOps](azure-pipelines.yml). Para instalar el nuevo evaluador:
+`python -m pip install -r requirements-audit.txt`.
+
 Herramientas internas para auditar las librerías Python aprobadas en la empresa: verificar que estén actualizadas, detectar vulnerabilidades conocidas y generar reportes para el equipo de desarrollo.
 
 ## Scripts
@@ -7,7 +13,7 @@ Herramientas internas para auditar las librerías Python aprobadas en la empresa
 | Script | Qué hace |
 |--------|----------|
 | `daily_checks.py` | Verifica **todas** las librerías de un Excel: compara versiones contra PyPI, detecta vulnerabilidades (OSV.dev) y genera un reporte HTML para Teams. |
-| `pylibs_check.py` | Audita **una sola** librería a profundidad: crea un entorno virtual aislado, analiza sus dependencias, licencias y vulnerabilidades. Genera CSV. |
+| `pylibs_check.py` | Entrada compatible para evaluar un paquete Python con el motor multiecosistema; genera CSV y evidencia. |
 
 ## Estructura del proyecto
 
@@ -117,14 +123,16 @@ Genera `daily_checks.log` con rotación automática (5 MB máx, 3 backups). Tamb
 
 ## pylibs_check.py
 
-Auditor individual de un paquete Python. Crea un entorno virtual temporal, instala el paquete y sus dependencias, y ejecuta herramientas de análisis.
+Entrada compatible para evaluar un paquete Python. Resuelve con pip en modo dry-run,
+consulta OSV y genera evidencia para revisión manual. La CLI `python -m oss_audit`
+ofrece los tres ecosistemas y la exportación de evidencia.
 
 ### ¿Qué analiza?
 
-- **Dependencias**: Árbol completo (directas y transitivas) con `pipdeptree`
-- **Licencias**: Tipo de licencia de cada dependencia con `pip-licenses`, marca las restrictivas (GPL, AGPL, etc.)
-- **Vulnerabilidades**: Escaneo con `pip-audit` vía OSV.dev
-- **Metadatos**: Última actualización, URLs del proyecto, versión actual vs. última en PyPI
+- **Dependencias**: Directas y transitivas desde el reporte del resolver pip.
+- **Licencias**: Metadatos del paquete y política externa en `policies/licenses.json`.
+- **Vulnerabilidades**: OSV por componente y versión; severidad y correcciones disponibles.
+- **Evidencia**: CSV compatible, detalle de hallazgos, SBOM y reporte JSON histórico.
 
 ### Uso
 
@@ -136,4 +144,6 @@ Genera un archivo CSV con los resultados del análisis.
 
 ### Requisitos
 
-Necesita Python con acceso a `venv`. Las herramientas de análisis (`pip-audit`, `pip-licenses`, `pipdeptree`) se instalan automáticamente en el entorno virtual temporal.
+Necesita Python 3.10+ y `requirements-audit.txt`. No instala las librerías evaluadas.
+La resolución requiere wheels compatibles; las limitaciones y configuración del
+pipeline se describen en [AUTOMATION.md](AUTOMATION.md).
